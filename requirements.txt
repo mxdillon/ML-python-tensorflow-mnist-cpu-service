@@ -1,5 +1,7 @@
 #Fill in dependencies here
-onnx==1.4.1
 falcon==2.0.0
 gunicorn==19.9.0
 numpy==1.16.2
+onnx==1.6.0
+onnxruntime==1.1.0
+tensorflow==1.15.0

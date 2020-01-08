@@ -1,13 +1,11 @@
 #!/usr/bin/python
 
-import caffe2.python.onnx.backend as backend
 import falcon
 import json
 import numpy as np
 import onnx
 import time
-import torch
-from torchvision import datasets, transforms
+import tensorflow as tf
 
 
 PORT_NUMBER = 8080
@@ -19,19 +17,14 @@ model = onnx.load("model.onnx")
 # Check that the IR is well formed
 onnx.checker.check_model(model)
 
+# Load onnx model and initiate runtime
 rep = backend.prepare(model, device="CPU")  # or "CUDA:0"
 
-transform = transforms.Compose(
-    [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,)), ]
-)
-
-testset = datasets.MNIST(
-    "./MNIST_data/", train=False, download=True, transform=transform
-)
-testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
-images, labels = next(iter(testloader))
-images = images.view(images.shape[0], -1)
-image_count = images.size()[0]
+# Load the data to test model with
+mnist = tf.keras.datasets.mnist
+(_, _), (x_test, y_test) = mnist.load_data()
+x_test = x_test / 255.0
+image_count = x_test.shape[0]
 end = time.time()
 print("Loading time: {0:f} secs)".format(end - start))
 
