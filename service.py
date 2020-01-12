@@ -6,6 +6,7 @@ import numpy as np
 import onnx
 import time
 import tensorflow as tf
+import onnxruntime as rt
 
 
 PORT_NUMBER = 8080
@@ -17,8 +18,9 @@ model = onnx.load("model.onnx")
 # Check that the IR is well formed
 onnx.checker.check_model(model)
 
-# Load onnx model and initiate runtime
-rep = backend.prepare(model, device="CPU")  # or "CUDA:0"
+rt.set_default_logger_severity(0)
+sess = rt.InferenceSession("model.onnx")
+
 
 # Load the data to test model with
 mnist = tf.keras.datasets.mnist
@@ -28,8 +30,23 @@ image_count = x_test.shape[0]
 end = time.time()
 print("Loading time: {0:f} secs)".format(end - start))
 
+# Run inference
+input_name = sess.get_inputs()[0].name
+# res = sess.run(None, {input_name: ximg})
+# prob = res[0]
+
+prediction_input = np.asarray(x_test[0, :, :], dtype='float32')
+# if only processing a single example, maintain the batch dimension, else swap axes so they are in order model expects:
+if prediction_input.ndim == 2:
+    prediction_input = np.expand_dims(prediction_input, axis=2)
+# onnxruntime requires an extra dimension at axis=0:
+prediction_input = np.expand_dims(prediction_input, axis=0)
+y_pred = sess.run(None, {input_name: prediction_input})[0]
+# out = np.array2string(np.squeeze(y_test, axis=0))
 
 # API Handler for MNIST test images
+
+
 class MNIST(object):
     def on_get(self, req, resp, index):
         if index < image_count:
