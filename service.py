@@ -8,18 +8,14 @@ import time
 import tensorflow as tf
 import onnxruntime as rt
 
-
 PORT_NUMBER = 8080
 start = time.time()
 
 # Load the ONNX model
-model = onnx.load("model.onnx")
+model = onnx.load('model.onnx')
 
 # Check that the IR is well formed
 onnx.checker.check_model(model)
-
-rt.set_default_logger_severity(0)
-sess = rt.InferenceSession("model.onnx")
 
 
 # Load the data to test model with
@@ -30,31 +26,38 @@ image_count = x_test.shape[0]
 end = time.time()
 print("Loading time: {0:f} secs)".format(end - start))
 
-# Run inference
+# Start inference session
+rt.set_default_logger_severity(0)
+sess = rt.InferenceSession("model.onnx")
 input_name = sess.get_inputs()[0].name
-# res = sess.run(None, {input_name: ximg})
-# prob = res[0]
 
-prediction_input = np.asarray(x_test[0, :, :], dtype='float32')
-# if only processing a single example, maintain the batch dimension, else swap axes so they are in order model expects:
-if prediction_input.ndim == 2:
-    prediction_input = np.expand_dims(prediction_input, axis=2)
-# onnxruntime requires an extra dimension at axis=0:
-prediction_input = np.expand_dims(prediction_input, axis=0)
-y_pred = sess.run(None, {input_name: prediction_input})[0]
+
 # out = np.array2string(np.squeeze(y_test, axis=0))
 
-# API Handler for MNIST test images
+
+def prepare_x_test(image_in: np.ndarray) -> np.ndarray:
+    """Format an MNIST image so that it can be used for inference in onnx runtime.
+
+    :param image_in: 2-dim numpy array that will be converted into a 4-dim array
+    :type image_in: np.ndarray
+    :return: 4-dim array with the first (onnxruntime specific) and last dimensions (batchsize=1) as empty
+    :rtype: np.ndarray
+    """
+    test_image = np.asarray(image_in, dtype='float32')
+    test_image = np.expand_dims(test_image, axis=2)
+    return np.expand_dims(test_image, axis=0)
+
+# API Handler for MNIST classifier
 
 
 class MNIST(object):
     def on_get(self, req, resp, index):
         if index < image_count:
             payload = {}
-            payload["label"] = int(labels[index])
-            img = images[index].view(1, 784)
-            outputs = rep.run(img.numpy())
-            predicted = int(np.argmax(outputs))
+            payload["label"] = int(y_test[index])
+            test_image = prepare_x_test(image_in=x_test[index, :, :])
+            y_pred = sess.run(None, {input_name: test_image})[0]
+            predicted = int(np.argmax(y_pred))
             payload["predicted"] = predicted
             resp.body = json.dumps(payload)
             resp.status = falcon.HTTP_200
@@ -71,5 +74,6 @@ class MNIST(object):
 class Intro(object):
     def on_get(self, req, resp):
         resp.body = '{"message": \
-                    "This service verifies a model using the MNIST Test data set. Invoke using the form /mnist/<index of test image>. For example, /mnist/24"}'
+                    "This service verifies a model using the MNIST Test data set. Invoke using the form \
+                    /mnist/<index of test image>. For example, /mnist/24"}'
         resp.status = falcon.HTTP_200
