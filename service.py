@@ -16,11 +16,7 @@ start = time.time()
 
 class MNIST(object):
     def __init__(self):
-        """Instantiate the class. Load the MNIST test dataset (10000 images).
-
-        :param object: [description]
-        :type object: [type]
-        """
+        """Load the MNIST test dataset (10000 images). Load onnx model and start inference session."""
 
         mnist = tf.keras.datasets.mnist
         (_, _), (x_test, self.y_test) = mnist.load_data()
@@ -31,10 +27,8 @@ class MNIST(object):
 
         # Load the ONNX model
         model = onnx.load('model.onnx')
-
         # Check that the IR is well formed
         onnx.checker.check_model(model)
-
         # Start inference session
         rt.set_default_logger_severity(0)
         self.sess = rt.InferenceSession("model.onnx")
@@ -53,15 +47,38 @@ class MNIST(object):
         test_image = np.expand_dims(test_image, axis=2)
         return np.expand_dims(test_image, axis=0)
 
-    def on_get(self, req, resp, index):
+    def format_payload(self, index: int, y_pred: np.ndarray) -> json:
+        """Format prediction results into a json to be returned to user.
+
+        :param index: int 0-9999 indicating which test image will be processed by the model
+        :type index: int
+        :param predicted: 10-dim array containing probability distribution over the 10 classes
+        :type predicted: int
+        :return: json with structure {"label": int, "predicted": int}
+        :rtype: json
+        """
+        payload = {}
+        payload["label"] = int(self.y_test[index])
+        predicted = int(np.argmax(y_pred))
+        payload["predicted"] = predicted
+        return json.dumps(payload)
+
+    def on_get(self, req, resp, index: int):
+        """Handle HTTP GET request.
+
+        :param req: HTTP request
+        :type req: req
+        :param resp: HTTP response
+        :type resp: resp
+        :param index: int 0-9999 indicating which test image will be processed by the model. Defined by user as part of
+        the HTTP GET request
+        :type index: int
+        :raises falcon.HTTPBadRequest: If user passes integer outside acceptable range, bad request raised
+        """
         if index < self.image_count:
-            payload = {}
-            payload["label"] = int(self.y_test[index])
             test_image = self.prepare_x_test(image_in=self.x_test[index, :, :])
             y_pred = self.sess.run(None, {self.input_name: test_image})[0]
-            predicted = int(np.argmax(y_pred))
-            payload["predicted"] = predicted
-            resp.body = json.dumps(payload)
+            resp.body = self.format_payload(index=index, y_pred=y_pred)
             resp.status = falcon.HTTP_200
         else:
             raise falcon.HTTPBadRequest(
