@@ -9,21 +9,19 @@ import tensorflow as tf
 import onnxruntime as rt
 
 PORT_NUMBER = 8080
-start = time.time()
 
-
-# API Handler for MNIST classifier
 
 class MNIST(object):
     def __init__(self):
         """Load the MNIST test dataset (10000 images). Load onnx model and start inference session."""
 
+        start = time.time()
         mnist = tf.keras.datasets.mnist
         (_, _), (x_test, self.y_test) = mnist.load_data()
         self.x_test = x_test / 255.0
         self.image_count = x_test.shape[0]
         end = time.time()
-        print("Loading time: {0:f} secs)".format(end - start))
+        print("Loading time: {0:f} secs".format(end - start))
 
         # Load the ONNX model
         model = onnx.load('model.onnx')
@@ -89,7 +87,6 @@ class MNIST(object):
             )
 
 
-# API Handler for API example message
 class Intro(object):
     def on_get(self, req, resp):
         """Handle HTTP GET request when no MNIST test image is specified.
