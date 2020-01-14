@@ -23,10 +23,9 @@ class MNIST(object):
         end = time.time()
         print("Loading time: {0:f} secs".format(end - start))
 
-        # Load the ONNX model
-        model = onnx.load('model.onnx')
-        # Check that the IR is well formed
-        onnx.checker.check_model(model)
+        # Load the ONNX model and check the model is well formed
+        self.model = onnx.load('model.onnx')
+        onnx.checker.check_model(self.model)
         # Start inference session
         rt.set_default_logger_severity(0)
         self.sess = rt.InferenceSession("model.onnx")
