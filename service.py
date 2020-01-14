@@ -92,6 +92,13 @@ class MNIST(object):
 # API Handler for API example message
 class Intro(object):
     def on_get(self, req, resp):
+        """Handle HTTP GET request when no MNIST test image is specified.
+
+        :param req: HTTP GET request
+        :type req: req
+        :param resp: HTTP response
+        :type resp: resp
+        """
         resp.body = '{"message": \
                     "This service verifies a model using the MNIST Test data set. Invoke using the form \
                     /mnist/<index of test image>. For example, /mnist/24"}'
