@@ -7,7 +7,7 @@ import falcon
 
 from falcon import testing
 
-from service import MNIST
+from service import MNIST, Intro
 from app import number_of_workers
 
 
@@ -27,9 +27,12 @@ def test_image():
 
 
 @pytest.fixture(scope="session")
-def test_client():
+def test_client(mnist_class):
     options = {
         'bind': '%s:%s' % ('0.0.0.0', '8080'),
         'workers': str(number_of_workers()),
     }
-    return testing.TestClient(falcon.API(), options)
+    client = testing.TestClient(falcon.API(), options)
+    client.app.add_route("/mnist/{index:int(min=0)}", mnist_class)
+    client.app.add_route("/mnist", Intro())
+    return client
