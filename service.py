@@ -4,9 +4,10 @@ import falcon
 import json
 import numpy as np
 import onnx
-import time
-import tensorflow as tf
 import onnxruntime as rt
+import tensorflow as tf
+import time
+
 
 PORT_NUMBER = 8080
 
