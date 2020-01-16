@@ -2,7 +2,6 @@
 # coding=utf-8
 
 import pytest
-from service import MNIST, Intro
 
 
 @pytest.mark.parametrize('route,expected', [("/mnist/0", {'label': 7, 'predicted': 7}),
