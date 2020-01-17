@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import os
+import sys
 import falcon
 import json
 import numpy as np
@@ -25,7 +27,9 @@ class MNIST(object):
         print("Loading time: {0:f} secs".format(end - start))
 
         # Load the ONNX model and check the model is well formed
-        self.model = onnx.load('model.onnx')
+        if not os.path.exists("model.onnx"):
+            sys.exit("There needs to be a model located at '.model.onnx'. Tests will fail if this is not the case.")
+        self.model = onnx.load("model.onnx")
         onnx.checker.check_model(self.model)
         # Start inference session
         rt.set_default_logger_severity(0)
