@@ -4,13 +4,19 @@
 import pytest
 
 
-@pytest.mark.parametrize('route,expected', [("/mnist/0", {'label': 7, 'predicted': 7}),
-                                            ("/mnist/333", {'label': 5, 'predicted': 5}),
-                                            ("/mnist/9473", {'label': 4, 'predicted': 4}),
+@pytest.mark.parametrize('route,expected', [("/mnist/0", ['label', 'predicted']),
+                                            ("/mnist/333", ['label', 'predicted']),
+                                            ("/mnist/9473", ['label', 'predicted'])])
+def test_inference_result(test_client, route, expected):
+    actual = test_client.simulate_get(route)
+    assert list(actual.json.keys()) == expected
+
+
+@pytest.mark.parametrize('route,expected', [("/mnist/10000", {'description': 'The requested index must be between 0'
+                                                              ' and 9999, inclusive.', 'title': 'Index Out of Range. '}),
                                             ("/mnist/56450", {'description': 'The requested index must be between 0'
                                                               ' and 9999, inclusive.', 'title': 'Index Out of Range. '})])
-def test_inference_result(test_client, route, expected):
-
+def test_inference_results_out_of_range(test_client, route, expected):
     actual = test_client.simulate_get(route)
     assert actual.json == expected
 
