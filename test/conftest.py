@@ -1,19 +1,26 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import pytest
+
 import numpy as np
-import falcon
+import pytest
+import socket
 
-from falcon import testing
+from http.server import HTTPServer
+from threading import Thread
 
-from service import MNIST, Intro
-from app import number_of_workers
+from app import MyHandler
+from service import MNIST
 
 
 @pytest.fixture(scope="session")
 def mnist_class():
     return MNIST()
+
+
+@pytest.fixture(scope='session')
+def port_number():
+    return 5050
 
 
 @pytest.fixture(scope="session")
@@ -26,13 +33,24 @@ def test_image():
     return np.zeros(shape=(28, 28))
 
 
-@pytest.fixture(scope="session")
-def test_client(mnist_class):
-    options = {
-        'bind': '%s:%s' % ('0.0.0.0', '8080'),
-        'workers': str(number_of_workers()),
-    }
-    client = testing.TestClient(falcon.API(), options)
-    client.app.add_route("/mnist/{index:int(min=0)}", mnist_class)
-    client.app.add_route("/mnist", Intro())
-    return client
+@pytest.fixture(scope='session')
+def mock_port():
+    """Find a free port to run mock server on."""
+    test_socket = socket.socket(socket.AF_INET, type=socket.SOCK_STREAM)
+    test_socket.bind(('localhost', 0))
+    _, port = test_socket.getsockname()
+    test_socket.close()
+    return port
+
+
+@pytest.fixture(scope='session')
+def mock_thread(mock_port):
+    """Set up mock server and run on a new thread.
+
+    :param get_free_port: port to start server on
+    :return: None
+    """
+    mock_server = HTTPServer(('', mock_port), MyHandler)
+    mock_thread = Thread(target=mock_server.serve_forever)
+    mock_thread.setDaemon(True)
+    mock_thread.start()
